@@ -150,16 +150,20 @@ class Web(callbacks.PluginRegexp):
         size = conf.supybot.protocols.http.peekSize()
         timeout = self.registryValue('timeout')
         (target, text) = utils.web.getUrlTargetAndContent(url, size=size,
-                                                          timeout=timeout)
+                timeout=timeout)
         encoding = utils.web.getEncoding(text)
-        if encoding is None:  # Condition if charade not installed
+        if encoding is None: # Condition if charade not installed
             self.log.info('Web plugin TitleSnarfer: Could not guess the page\'s'
                           ' encoding. (Try installing python-charade.)')
-            encoding = 'utf-8'  # Assume UTF-8 and replace unknown chars to the UTF-8 codec for U+FFFD in the next hop
+            encoding = 'utf-8' # Assume UTF-8 and replace unknown chars to the UTF-8 codec for U+FFFD in the next hop
         try:
-            text = text.decode(utils.web.getEncoding(text) or 'utf-8', 'replace')
+            text = text.decode(utils.web.getEncoding(text) or 'utf-8','replace')
             parser = Title()
-            parser.feed(text)
+            try:
+                parser.feed(text)
+            except:
+                parser = Title()
+                parser.feed(bytes(text)) # Explicitly pack to bytes in encoding errors for (more) python2 compatibility
             parser.close()
             title = utils.str.normalizeWhitespace(''.join(parser.data).strip())
             if title:
@@ -168,9 +172,9 @@ class Web(callbacks.PluginRegexp):
                 if len(text) < size:
                     self.log.info('Web plugin TitleSnarfer: '
                                   'That URL appears to have no HTML title.')
-        except raiseErrors:  # Can use raiseErrors here ?
+        except:
             irc.error(_('Web plugin TitleSnarfer encoding errors'),
-                      Raise=True)
+                             Raise=True)
 
     @fetch_sandbox
     def titleSnarfer(self, irc, msg, match):
