@@ -149,14 +149,13 @@ class Web(callbacks.PluginRegexp):
     def getTitle(self, irc, url, raiseErrors):
         size = conf.supybot.protocols.http.peekSize()
         timeout = self.registryValue('timeout')
-        (target, text) = utils.web.getUrlTargetAndContent(url, size=size,
-                timeout=timeout)
-        encoding = utils.web.getEncoding(text)
-        if encoding is None: # Condition if charade not installed
-            self.log.info('Web plugin TitleSnarfer: Could not guess the page\'s'
-                          ' encoding. (Try installing python-charade.)')
-            encoding = 'utf-8' # Assume UTF-8 and replace unknown chars to the UTF-8 codec for U+FFFD in the next hop
         try:
+            (target, text) = utils.web.getUrlTargetAndContent(url, size=size,timeout=timeout)
+            encoding = utils.web.getEncoding(text)
+            if encoding is None: # Condition if charade not installed
+                self.log.info('Web plugin TitleSnarfer: Could not guess the page\'s'
+                              ' encoding. (Try installing python-charade.)')
+                encoding = 'utf-8' # Assume UTF-8 and replace unknown chars to the UTF-8 codec for U+FFFD in the next hop
             text = text.decode(utils.web.getEncoding(text) or 'utf-8','replace')
             parser = Title()
             try:
@@ -170,11 +169,11 @@ class Web(callbacks.PluginRegexp):
                 return (target, title)
             else:
                 if len(text) < size:
-                    self.log.info('Web plugin TitleSnarfer: '
-                                  'That URL appears to have no HTML title.')
-        except:
-            irc.error(_('Web plugin TitleSnarfer encoding errors'),
-                             Raise=True)
+                    self.log.info('Web plugin TitleSnarfer: <' + url + '> appears to have no HTML title.')
+                else:
+                    self.log.info('Web plugin TitleSnarfer: Could not retrieve title of <' + url + '>')
+        except Exception as e:
+            self.log.info('Web plugin TitleSnarfer: <' + str(e) + '> while trying to process <' + url +'>')
 
     @fetch_sandbox
     def titleSnarfer(self, irc, msg, match):
